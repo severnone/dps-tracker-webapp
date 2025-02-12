@@ -1,3 +1,4 @@
+const BOT_URL = 'https://api.telegram.org/bot7589897746:AAEhL_zFWcC6iPtz_i2CmeQO4YL4j3rZ3V4';
 let tg = window.Telegram.WebApp;
 let startTime = Date.now();
 let watchId = null;
@@ -42,12 +43,28 @@ function saveSettings() {
     // Показываем/скрываем регулятор громкости
     document.getElementById('volumeControl').style.display = 
         soundSettings.enabled ? 'flex' : 'none';
-    
-    // Отправка в бот
-    tg.sendData(JSON.stringify({
-        type: 'settings',
-        settings: soundSettings
-    }));
+}
+
+// Функция для отправки данных боту
+async function sendDataToBot(data) {
+    try {
+        console.log('Sending data to bot:', data);
+        const response = await fetch(`${BOT_URL}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: tg.initDataUnsafe.user.id,
+                text: JSON.stringify(data)
+            })
+        });
+        
+        const result = await response.json();
+        console.log('Response from bot:', result);
+    } catch (e) {
+        console.error('Error sending data to bot:', e);
+    }
 }
 
 // Запуск отслеживания
@@ -77,21 +94,15 @@ function handlePosition(position) {
         lat: position.coords.latitude,
         lon: position.coords.longitude,
         accuracy: accuracy,
-        timestamp: position.timestamp,
-        settings: settings
+        timestamp: position.timestamp
     };
     
-    // Отладочный вывод
-    console.log('Sending location data to bot:', data);
+    // Отправляем данные боту
+    sendDataToBot(data);
     
-    try {
-        tg.sendData(JSON.stringify(data));
-        console.log('Data sent successfully');
-    } catch (e) {
-        console.error('Error sending data:', e);
-        document.getElementById('trackingStatus').innerHTML = 
-            `Статус: <span class="error">Ошибка отправки данных</span>`;
-    }
+    // Обновляем статус
+    document.getElementById('trackingStatus').innerHTML = 
+        `Статус: <span class="active">Отслеживание активно</span>`;
 }
 
 // Остановка отслеживания
@@ -108,8 +119,7 @@ function stopTracking() {
             type: 'tracking_stopped',
             timestamp: Date.now()
         };
-        console.log('Sending stop tracking data:', data);
-        tg.sendData(JSON.stringify(data));
+        sendDataToBot(data);
         
         // Закрываем WebApp
         setTimeout(() => tg.close(), 1000);
@@ -143,8 +153,7 @@ function handleError(error) {
         message: errorMessage,
         timestamp: Date.now()
     };
-    console.log('Sending error data:', data);
-    tg.sendData(JSON.stringify(data));
+    sendDataToBot(data);
 }
 
 // Воспроизведение звука
@@ -201,22 +210,11 @@ tg.onEvent('message', function(event) {
         const data = JSON.parse(event.data);
         console.log('Parsed message data:', data);
         
-        // Обработка команд от бота
-        if (data.type === 'command') {
-            console.log('Processing command:', data.action);
-            switch(data.action) {
-                case 'stop_tracking':
-                    stopTracking();
-                    break;
-            }
-        }
-        
-        // Обработка оповещений
         if (data.type === 'dps_alert') {
-            console.log('Processing DPS alert');
+            console.log('Playing alert sound for distance:', data.distance);
             playAlert(data.distance);
         }
     } catch (e) {
         console.error('Error processing message:', e);
     }
-}); 
+});
