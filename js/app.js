@@ -26,9 +26,9 @@ function loadSettings() {
         soundSettings = JSON.parse(saved);
         document.getElementById('soundEnabled').checked = soundSettings.enabled;
         document.getElementById('soundVolume').value = soundSettings.volume;
-        
+
         // Показываем/скрываем регулятор громкости
-        document.getElementById('volumeControl').style.display = 
+        document.getElementById('volumeControl').style.display =
             soundSettings.enabled ? 'flex' : 'none';
     }
 }
@@ -37,11 +37,11 @@ function loadSettings() {
 function saveSettings() {
     soundSettings.enabled = document.getElementById('soundEnabled').checked;
     soundSettings.volume = parseFloat(document.getElementById('soundVolume').value);
-    
+
     localStorage.setItem('dpsTrackerSettings', JSON.stringify(soundSettings));
-    
+
     // Показываем/скрываем регулятор громкости
-    document.getElementById('volumeControl').style.display = 
+    document.getElementById('volumeControl').style.display =
         soundSettings.enabled ? 'flex' : 'none';
 }
 
@@ -56,7 +56,7 @@ async function sendDataToBot(data) {
             },
             body: JSON.stringify({
                 chat_id: tg.initDataUnsafe.user.id,
-                text: JSON.stringify(data)
+                text: `webapp_data:${JSON.stringify(data)}`
             })
         });
         
@@ -86,7 +86,7 @@ function startTracking() {
 function handlePosition(position) {
     console.log('Got position:', position);
     const accuracy = Math.round(position.coords.accuracy);
-    document.getElementById('accuracy').textContent = 
+    document.getElementById('accuracy').textContent =
         `Точность: ${accuracy}м`;
 
     const data = {
@@ -96,12 +96,12 @@ function handlePosition(position) {
         accuracy: accuracy,
         timestamp: position.timestamp
     };
-    
+
     // Отправляем данные боту
     sendDataToBot(data);
-    
+
     // Обновляем статус
-    document.getElementById('trackingStatus').innerHTML = 
+    document.getElementById('trackingStatus').innerHTML =
         `Статус: <span class="active">Отслеживание активно</span>`;
 }
 
@@ -110,17 +110,17 @@ function stopTracking() {
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
-        
-        document.getElementById('trackingStatus').innerHTML = 
+
+        document.getElementById('trackingStatus').innerHTML =
             `Статус: <span class="inactive">Отслеживание остановлено</span>`;
-        
+
         // Отправляем сообщение боту
         const data = {
             type: 'tracking_stopped',
             timestamp: Date.now()
         };
         sendDataToBot(data);
-        
+
         // Закрываем WebApp
         setTimeout(() => tg.close(), 1000);
     }
@@ -143,10 +143,10 @@ function handleError(error) {
         default:
             errorMessage += 'неизвестная ошибка';
     }
-    
-    document.getElementById('trackingStatus').innerHTML = 
+
+    document.getElementById('trackingStatus').innerHTML =
         `Статус: <span class="error">${errorMessage}</span>`;
-        
+
     // Отправляем ошибку боту
     const data = {
         type: 'error',
@@ -159,24 +159,24 @@ function handleError(error) {
 // Воспроизведение звука
 async function playAlert(distance) {
     if (!soundSettings.enabled) return;
-    
+
     try {
         // Сначала звук предупреждения
         const warning = new Audio('alerts/warning.mp3');
         warning.volume = soundSettings.volume;
         await warning.play();
-        
+
         // Ждем окончания предупреждения
         await new Promise(resolve => {
             warning.onended = resolve;
         });
-        
+
         // Затем голосовое сообщение
         const distanceFile = distance >= 1000 ? '1000m.mp3' : `${Math.floor(distance)}m.mp3`;
         const voice = new Audio(`alerts/${distanceFile}`);
         voice.volume = soundSettings.volume;
         await voice.play();
-        
+
     } catch (e) {
         console.error('Error playing audio:', e);
     }
@@ -188,8 +188,8 @@ function updateTrackingTime() {
     const hours = Math.floor(elapsed / 3600);
     const minutes = Math.floor((elapsed % 3600) / 60);
     const seconds = elapsed % 60;
-    
-    document.getElementById('trackingTime').textContent = 
+
+    document.getElementById('trackingTime').textContent =
         `Время работы: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
@@ -209,7 +209,7 @@ tg.onEvent('message', function(event) {
     try {
         const data = JSON.parse(event.data);
         console.log('Parsed message data:', data);
-        
+
         if (data.type === 'dps_alert') {
             console.log('Playing alert sound for distance:', data.distance);
             playAlert(data.distance);
