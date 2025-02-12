@@ -81,8 +81,17 @@ function handlePosition(position) {
         settings: settings
     };
     
+    // Отладочный вывод
     console.log('Sending location data to bot:', data);
-    tg.sendData(JSON.stringify(data));
+    
+    try {
+        tg.sendData(JSON.stringify(data));
+        console.log('Data sent successfully');
+    } catch (e) {
+        console.error('Error sending data:', e);
+        document.getElementById('trackingStatus').innerHTML = 
+            `Статус: <span class="error">Ошибка отправки данных</span>`;
+    }
 }
 
 // Остановка отслеживания
