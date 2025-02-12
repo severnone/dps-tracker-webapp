@@ -78,7 +78,7 @@ function handlePosition(position) {
         lon: position.coords.longitude,
         accuracy: accuracy,
         timestamp: position.timestamp,
-        settings: soundSettings
+        settings: settings
     }));
 }
 
@@ -161,9 +161,24 @@ startTracking();
 setInterval(updateTrackingTime, 1000);
 
 // Обработка сообщений от бота
-window.addEventListener('message', function(event) {
-    const data = event.data;
-    if (data.type === 'dps_alert') {
-        playAlert(data.distance);
+tg.onEvent('message', function(event) {
+    try {
+        const data = JSON.parse(event.data);
+        
+        // Обработка команд от бота
+        if (data.type === 'command') {
+            switch(data.action) {
+                case 'stop_tracking':
+                    stopTracking();
+                    break;
+            }
+        }
+        
+        // Обработка оповещений
+        if (data.type === 'dps_alert') {
+            playAlert(data.distance);
+        }
+    } catch (e) {
+        console.error('Error processing message:', e);
     }
 }); 
