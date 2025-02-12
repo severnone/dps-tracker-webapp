@@ -67,19 +67,22 @@ function startTracking() {
 
 // Обработка полученной позиции
 function handlePosition(position) {
+    console.log('Got position:', position);
     const accuracy = Math.round(position.coords.accuracy);
     document.getElementById('accuracy').textContent = 
         `Точность: ${accuracy}м`;
 
-    // Отправка данных в бот
-    tg.sendData(JSON.stringify({
+    const data = {
         type: 'location',
         lat: position.coords.latitude,
         lon: position.coords.longitude,
         accuracy: accuracy,
         timestamp: position.timestamp,
         settings: settings
-    }));
+    };
+    
+    console.log('Sending data to bot:', data);
+    tg.sendData(JSON.stringify(data));
 }
 
 // Обработка ошибок геолокации
@@ -162,11 +165,14 @@ setInterval(updateTrackingTime, 1000);
 
 // Обработка сообщений от бота
 tg.onEvent('message', function(event) {
+    console.log('Received message from bot:', event);
     try {
         const data = JSON.parse(event.data);
+        console.log('Parsed message data:', data);
         
         // Обработка команд от бота
         if (data.type === 'command') {
+            console.log('Processing command:', data.action);
             switch(data.action) {
                 case 'stop_tracking':
                     stopTracking();
@@ -176,6 +182,7 @@ tg.onEvent('message', function(event) {
         
         // Обработка оповещений
         if (data.type === 'dps_alert') {
+            console.log('Processing DPS alert');
             playAlert(data.distance);
         }
     } catch (e) {
