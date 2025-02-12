@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DPS Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="status-panel">
+        <div id="trackingStatus" class="status-item">
+            Статус: <span class="active">Отслеживание активно</span>
+        </div>
+        <div id="accuracy" class="status-item">
+            Точность: Определение...
+        </div>
+        <div id="trackingTime" class="status-item">
+            Время работы: 00:00:00
+        </div>
+    </div>
+
+    <div class="settings-panel">
+        <div class="settings-item">
+            <label for="soundEnabled">
+                <span class="icon">🔊</span>
+                Звуковые оповещения
+            </label>
+            <input type="checkbox" id="soundEnabled" checked>
+        </div>
+        <div class="settings-item volume-control" id="volumeControl">
+            <label for="soundVolume">
+                <span class="icon">🔈</span>
+                Громкость
+            </label>
+            <input type="range" id="soundVolume" min="0" max="1" step="0.1" value="1">
+        </div>
+    </div>
+
+    <button id="stopTracking" class="button warning">
+        🔴 Остановить отслеживание
+    </button>
+
+    <script src="js/app.js"></script>
+</body>
+</html> 
