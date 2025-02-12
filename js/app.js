@@ -81,12 +81,35 @@ function handlePosition(position) {
         settings: settings
     };
     
-    console.log('Sending data to bot:', data);
+    console.log('Sending location data to bot:', data);
     tg.sendData(JSON.stringify(data));
+}
+
+// Остановка отслеживания
+function stopTracking() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        
+        document.getElementById('trackingStatus').innerHTML = 
+            `Статус: <span class="inactive">Отслеживание остановлено</span>`;
+        
+        // Отправляем сообщение боту
+        const data = {
+            type: 'tracking_stopped',
+            timestamp: Date.now()
+        };
+        console.log('Sending stop tracking data:', data);
+        tg.sendData(JSON.stringify(data));
+        
+        // Закрываем WebApp
+        setTimeout(() => tg.close(), 1000);
+    }
 }
 
 // Обработка ошибок геолокации
 function handleError(error) {
+    console.error('Geolocation error:', error);
     let errorMessage = 'Ошибка определения локации: ';
     switch(error.code) {
         case error.PERMISSION_DENIED:
@@ -101,8 +124,18 @@ function handleError(error) {
         default:
             errorMessage += 'неизвестная ошибка';
     }
+    
     document.getElementById('trackingStatus').innerHTML = 
         `Статус: <span class="error">${errorMessage}</span>`;
+        
+    // Отправляем ошибку боту
+    const data = {
+        type: 'error',
+        message: errorMessage,
+        timestamp: Date.now()
+    };
+    console.log('Sending error data:', data);
+    tg.sendData(JSON.stringify(data));
 }
 
 // Воспроизведение звука
@@ -140,17 +173,6 @@ function updateTrackingTime() {
     
     document.getElementById('trackingTime').textContent = 
         `Время работы: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-// Остановка отслеживания
-function stopTracking() {
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
-    document.getElementById('trackingStatus').innerHTML = 
-        `Статус: <span class="inactive">Отслеживание остановлено</span>`;
-    tg.close();
 }
 
 // Обработчики событий
