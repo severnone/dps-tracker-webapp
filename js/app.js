@@ -1,11 +1,16 @@
 const BOT_URL = 'https://api.telegram.org/bot7589897746:AAEhL_zFWcC6iPtz_i2CmeQO4YL4j3rZ3V4';
 let tg = window.Telegram.WebApp;
-let startTime = Date.now();
 let watchId = null;
+let isTracking = false;
 
 // Инициализация
 tg.expand();
 tg.ready();
+
+// Создаем кнопку для начала отслеживания
+const mainButton = tg.MainButton;
+mainButton.setText('Начать отслеживание');
+mainButton.show();
 
 // Настройки звука
 let soundSettings = {
@@ -60,16 +65,22 @@ async function sendDataToBot(data) {
             })
         });
         
-        const result = await response.json();
-        console.log('Response from bot:', result);
+        console.log('Response from bot:', await response.json());
     } catch (e) {
         console.error('Error sending data to bot:', e);
+        document.getElementById('trackingStatus').innerHTML = 
+            `Статус: <span class="error">Ошибка отправки данных</span>`;
     }
 }
 
-// Запуск отслеживания
+// Функция для начала отслеживания
 function startTracking() {
-    if ("geolocation" in navigator) {
+    if (!isTracking && "geolocation" in navigator) {
+        isTracking = true;
+        mainButton.setText('Остановить отслеживание');
+        document.getElementById('trackingStatus').innerHTML = 
+            `Статус: <span class="active">Отслеживание активно</span>`;
+            
         watchId = navigator.geolocation.watchPosition(
             handlePosition,
             handleError,
@@ -82,11 +93,23 @@ function startTracking() {
     }
 }
 
+// Функция для остановки отслеживания
+function stopTracking() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        isTracking = false;
+        mainButton.setText('Начать отслеживание');
+        document.getElementById('trackingStatus').innerHTML = 
+            `Статус: <span class="inactive">Отслеживание остановлено</span>`;
+    }
+}
+
 // Обработка полученной позиции
 function handlePosition(position) {
     console.log('Got position:', position);
     const accuracy = Math.round(position.coords.accuracy);
-    document.getElementById('accuracy').textContent =
+    document.getElementById('accuracy').textContent = 
         `Точность: ${accuracy}м`;
 
     const data = {
@@ -96,34 +119,8 @@ function handlePosition(position) {
         accuracy: accuracy,
         timestamp: position.timestamp
     };
-
-    // Отправляем данные боту
+    
     sendDataToBot(data);
-
-    // Обновляем статус
-    document.getElementById('trackingStatus').innerHTML =
-        `Статус: <span class="active">Отслеживание активно</span>`;
-}
-
-// Остановка отслеживания
-function stopTracking() {
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-
-        document.getElementById('trackingStatus').innerHTML =
-            `Статус: <span class="inactive">Отслеживание остановлено</span>`;
-
-        // Отправляем сообщение боту
-        const data = {
-            type: 'tracking_stopped',
-            timestamp: Date.now()
-        };
-        sendDataToBot(data);
-
-        // Закрываем WebApp
-        setTimeout(() => tg.close(), 1000);
-    }
 }
 
 // Обработка ошибок геолокации
@@ -143,18 +140,31 @@ function handleError(error) {
         default:
             errorMessage += 'неизвестная ошибка';
     }
-
-    document.getElementById('trackingStatus').innerHTML =
+    
+    document.getElementById('trackingStatus').innerHTML = 
         `Статус: <span class="error">${errorMessage}</span>`;
-
-    // Отправляем ошибку боту
-    const data = {
-        type: 'error',
-        message: errorMessage,
-        timestamp: Date.now()
-    };
-    sendDataToBot(data);
 }
+
+// Обработчик нажатия на MainButton
+mainButton.onClick(() => {
+    if (isTracking) {
+        stopTracking();
+    } else {
+        startTracking();
+    }
+});
+
+// Обработка сообщений от бота
+tg.onEvent('message', function(event) {
+    try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'command' && data.action === 'stop_tracking') {
+            stopTracking();
+        }
+    } catch (e) {
+        console.error('Error processing bot message:', e);
+    }
+});
 
 // Воспроизведение звука
 async function playAlert(distance) {
@@ -194,14 +204,11 @@ function updateTrackingTime() {
 }
 
 // Обработчики событий
-document.getElementById('stopTracking').onclick = stopTracking;
 document.getElementById('soundEnabled').onchange = saveSettings;
 document.getElementById('soundVolume').onchange = saveSettings;
 
 // Запуск приложения
 loadSettings();
-startTracking();
-setInterval(updateTrackingTime, 1000);
 
 // Обработка сообщений от бота
 tg.onEvent('message', function(event) {
